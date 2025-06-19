@@ -22,6 +22,7 @@ router.get("/", async (req, res) => {
     .find(
       st && lim ? { id: { $gte: count - lim - st, $lte: count - st - 1 } } : {}
     )
+    .sort({id: -1})
     .toArray();
   res.send(results).status(200);
 });
@@ -64,7 +65,7 @@ router.get("/dislike/:id", async (req, res) => {
 
   const updates = {
     $set: {
-      likes: newLikes,
+      likes: (newLikes > 0) ? newLikes : 0,
     },
   };
 
@@ -78,12 +79,12 @@ router.get("/dislike/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     let collection = await db.collection("blogs");
-    let count = (await collection.find({}).toArray()).length;
+    let count = parseInt((await collection.find({}).sort({id:-1}).limit(1).toArray())[0].id);
     let newDocument = {
       title: req.body.title,
       about: req.body.about,
-      likes: req.body.likes,
-      id: count,
+      likes: 0,
+      id: count +1,
       image: req.body.image,
       extra: req.body.extra,
     };
@@ -119,7 +120,7 @@ router.post("/", async (req, res) => {
 // This section will help you delete a record
 router.delete("/:id", async (req, res) => {
   try {
-    const query = { _id: new ObjectId(req.params.id) };
+    let query = { id: new Int32(req.params.id) };
 
     const collection = db.collection("blogs");
     let result = await collection.deleteOne(query);
