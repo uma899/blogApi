@@ -4,7 +4,7 @@ import express from "express";
 import db from "../db/connection.js";
 
 // This help convert the id from string to ObjectId for the _id.
-import { ObjectId } from "mongodb";
+import { Int32, ObjectId } from "mongodb";
 
 // router is an instance of the express router.
 // We use it to define our routes.
@@ -17,15 +17,58 @@ router.get("/", async (req, res) => {
   const lim = parseInt(req.query.limit);
 
   let collection = await db.collection("blogs");
-  const results = await collection.find({id: { $gte: st, $lte: lim+st-1 }}).toArray();
+  const count = await collection.countDocuments();
+  const results = await collection
+    .find(
+      st && lim ? { id: { $gte: count - lim - st, $lte: count - st - 1 } } : {}
+    )
+    .toArray();
   res.send(results).status(200);
 });
 
 // This section will help you get a single record by id
 router.get("/:id", async (req, res) => {
   let collection = await db.collection("blogs");
-  let query = { _id: new ObjectId(req.params.id) };
+  let query = { id: new Int32(req.params.id) };
   let result = await collection.findOne(query);
+  if (!result) res.send("Not found").status(404);
+  else res.send(result).status(200);
+});
+
+router.get("/like/:id", async (req, res) => {
+  let collection = await db.collection("blogs");
+  let query = { id: new Int32(req.params.id) };
+  let required = await collection.findOne(query);
+
+  let newLikes = required.likes + 1;
+
+  const updates = {
+    $set: {
+      likes: newLikes,
+    },
+  };
+
+  let result = await collection.updateOne(query, updates);
+
+  if (!result) res.send("Not found").status(404);
+  else res.send(result).status(200);
+});
+
+
+router.get("/dislike/:id", async (req, res) => {
+  let collection = await db.collection("blogs");
+  let query = { id: new Int32(req.params.id) };
+  let required = await collection.findOne(query);
+
+  let newLikes = required.likes - 1;
+
+  const updates = {
+    $set: {
+      likes: newLikes,
+    },
+  };
+
+  let result = await collection.updateOne(query, updates);
 
   if (!result) res.send("Not found").status(404);
   else res.send(result).status(200);
@@ -44,7 +87,7 @@ router.post("/", async (req, res) => {
       image: req.body.image,
       extra: req.body.extra,
     };
-    
+
     let result = await collection.insertOne(newDocument);
     res.send(result).status(204);
   } catch (err) {
@@ -54,7 +97,7 @@ router.post("/", async (req, res) => {
 });
 
 // This section will help you update a record by id.
-router.put("/:id", async (req, res) => {
+/* router.put("/:id", async (req, res) => {
   try {
     const query = { _id: new ObjectId(req.params.id) };
     const updates = {
@@ -71,7 +114,7 @@ router.put("/:id", async (req, res) => {
     console.error(err);
     res.status(500).send("Error updating record");
   }
-});
+}); */
 
 // This section will help you delete a record
 router.delete("/:id", async (req, res) => {
