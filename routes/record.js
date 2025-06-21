@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
       likes: 0,
       id: count +1,
       image: req.body.image,
-      extra: req.body.extra,
+      creator: req.body.creator,
     };
 
     let result = await collection.insertOne(newDocument);
