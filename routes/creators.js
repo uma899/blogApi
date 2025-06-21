@@ -23,8 +23,8 @@ router.get("/:name", async (req, res) => {
   let collection = await db.collection("creators");
   let query = { creator: req.params.name };
   let result = await collection.findOne(query);
-  if (!result) res.send("Not found").status(404);
-  else res.send(result).status(200);
+  if (!result) res.json({isThere: false});
+  else res.json({isThere: true});
 });
 
 // This section will help you create a new record.
